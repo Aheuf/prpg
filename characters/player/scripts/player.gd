@@ -1,6 +1,5 @@
 extends "res://characters/characters.gd"
 
-
 var look:String
 var player_animation:String
 
@@ -55,6 +54,8 @@ func handle_corner_look(playerGaze, mousePosition) -> String:
 func update_animation() -> String:
 	if Input.is_action_pressed("player_run_animation"):
 		return "run"
+	elif Input.is_action_pressed("player_walk_animation"):
+		return "walk"
 	return "idle"
 ## FIN fonctions pour mettre à jour l'ANIMATION DU JOUEUR du joueur
 

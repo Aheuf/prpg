@@ -3,6 +3,9 @@ extends "res://characters/characters.gd"
 var look:String
 var movement:String
 var player_animation:String
+var mouse_position: Vector2
+var player_gaze: float
+var recorded_distance: float
 
 func _ready() -> void:
 	$player_animated_sprite.play("idle_top")
@@ -11,45 +14,33 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	look = update_gaze()
 	player_animation = update_animation()
+	mouse_position = get_global_mouse_position()
+	player_gaze = rad_to_deg(position.angle_to_point(mouse_position))
 	animate_player()
 	update_deplacement()
 
-func is_getting_closer() -> bool:
-	# TODO - ne fonctione pas de bottom left à top left (tout le côté gauche quoi)
-	if look.contains("r") and movement.contains("l"):
-		return false
-	elif look.contains("top") and movement.contains("bot"):
-		return false
-	elif look.contains("bot") and movement.contains("top"):
-		return false
-	return true
-
-### ---------------- DEBUT ANIMATION ---------------- ###
 ## DEBUT fonctions pour mettre à jour la POSITION DU REGARD du joueur
 func update_gaze() -> String:
-	var mouse_position: Vector2 = get_global_mouse_position()
-	var player_gaze = abs(rad_to_deg(position.angle_to_point(mouse_position)))
-	
-	if player_gaze < 22.5 or player_gaze > 157.5 :
-		return handle_horizontal_look(mouse_position)
-	elif 67.5 < player_gaze and player_gaze < 112.5:
-		return handle_vertical_look(mouse_position)
+	if abs(player_gaze) < 22.5 or abs(player_gaze) > 157.5 :
+		return handle_horizontal_look()
+	elif 67.5 < abs(player_gaze) and abs(player_gaze) < 112.5:
+		return handle_vertical_look()
 	else:
-		return handle_corner_look(player_gaze, mouse_position)
+		return handle_corner_look()
 
-func handle_horizontal_look(mouse_position) -> String:
+func handle_horizontal_look() -> String:
 	if mouse_position.x < position.x :
 		return "left"
 	return "right"
 
-func handle_vertical_look(mouse_position) -> String:
+func handle_vertical_look() -> String:
 	if mouse_position.y < position.y :
 		return "top"
 	return "bot"
 
-func handle_corner_look(player_gaze, mouse_position) -> String:
+func handle_corner_look() -> String:
 	var is_looking_up:bool = mouse_position.y < position.y
-	if 112.5 < player_gaze and player_gaze < 157.5:
+	if 112.5 < abs(player_gaze) and abs(player_gaze) < 157.5:
 		if is_looking_up:
 			return "tl"
 		else:
@@ -61,18 +52,21 @@ func handle_corner_look(player_gaze, mouse_position) -> String:
 			return "br"
 ## FIN fonctions pour mettre à jour la POSITION DU REGARD du joueur
 
+### ---------------- DEBUT ANIMATION ---------------- ###
 ## DEBUT fonctions pour mettre à jour l'ANIMATION DU JOUEUR du joueur
 func update_animation() -> String:
-	var movement_type:String = "idle"
-	var is_getting_closer = is_getting_closer()
-	if Input.is_action_pressed("player_run_animation") and not Input.is_key_pressed(KEY_SHIFT):
-		if is_getting_closer:
-			movement_type = "run"
-		else:
-			movement_type = "run_backward"
-	elif Input.is_action_pressed("player_run_animation") and Input.is_key_pressed(KEY_SHIFT):
-		movement_type = "walk"
-	return movement_type
+	if Input.is_action_pressed("player_deplacement_animation") and not Input.is_key_pressed(KEY_SHIFT):
+		return run_animation()
+	elif Input.is_action_pressed("player_deplacement_animation") and Input.is_key_pressed(KEY_SHIFT):
+		return "walk"
+	return "idle"
+
+func run_animation() -> String:
+	if Input.is_action_pressed("player_go_towards"):
+		return "run"
+	elif Input.is_action_pressed("player_go_away"):
+		return "run_backward"
+	return "run"
 ## FIN fonctions pour mettre à jour l'ANIMATION DU JOUEUR du joueur
 
 # joue l'animation defini par le regard et les touches
@@ -82,51 +76,77 @@ func animate_player() -> void:
 #######################################################
 ### ---------------- DEBUT MOVEMENT ---------------- ###
 func update_deplacement() -> void:
-	if player_animation == "run":
-		run()
-	elif player_animation == "walk":
-		walk()
+	var deplacement_speed:float
+	var max_deplacement_speed:float
+	
+	# setup de la vitesse de déplacement
+	match player_animation:
+		"run" :
+			deplacement_speed = RUN_SPEED
+			max_deplacement_speed = RUN_MAX_SPEED
+		"walk" :
+			deplacement_speed = WALK_SPEED
+			max_deplacement_speed = WALK_MAX_SPEED
+
+	if Input.is_action_pressed("player_go_towards") or Input.is_action_pressed("player_go_away"):
+		move_forward_or_backward(max_deplacement_speed)
+	elif Input.is_action_pressed("player_strafe_right") or Input.is_action_pressed("player_strafe_left"):
+		if global_position.distance_to(mouse_position) > recorded_distance:
+			velocity = global_position.direction_to(mouse_position) * RUN_MAX_SPEED
+		move_strafe(deplacement_speed, max_deplacement_speed)
 	else:
 		velocity.y = lerp(velocity.y, 0.00, FRICTION)
 		velocity.x = lerp(velocity.x, 0.00, FRICTION)
 
-func run():
-	## vertical run
-	if Input.is_action_pressed("player_run_up") and not Input.is_action_pressed("player_run_down"):
-		movement = "top"
-		velocity.y = clamp(velocity.y - RUN_SPEED, - RUN_MAX_SPEED, 0)
-	elif Input.is_action_pressed("player_run_down") and not Input.is_action_pressed("player_run_up"):
-		movement = "bot"
-		velocity.y = clamp(velocity.y + RUN_SPEED, 0, RUN_MAX_SPEED)
-	
-	## horizontal run
-	if Input.is_action_pressed("player_run_right") and not Input.is_action_pressed("player_run_left"):
-		movement = "right"
-		velocity.x = clamp(velocity.x + RUN_SPEED, 0, RUN_MAX_SPEED)
-	elif Input.is_action_pressed("player_run_left") and not Input.is_action_pressed("player_run_right"):
-		movement = "left"
-		velocity.x = clamp(velocity.x - RUN_SPEED, - RUN_MAX_SPEED, 0)
-	
-	## update corner movement information
-	if velocity.y > 0 and velocity.x > 0 :
-		movement = "br" #bottom right
-	elif velocity.y < 0 and velocity.x < 0 :
-		movement = "tl" #top left
-	elif velocity.y > 0 and velocity.x < 0 :
-		movement = "bl" #bottom right
-	elif velocity.y < 0 and velocity.x > 0:
-		movement = "tr" #top right
+func move_forward_or_backward(max_deplacement_speed) -> void:
+	if Input.is_action_pressed("player_go_towards") and not Input.is_action_pressed("player_go_away"):
+		velocity = global_position.direction_to(mouse_position) * max_deplacement_speed
+	elif Input.is_action_pressed("player_go_away") and not Input.is_action_pressed("player_go_towards"):
+		#TODO /!\/!\/!\ ne fonctionne pas /!\/!\/!\
+		velocity = - global_position.direction_to(mouse_position) * max_deplacement_speed
+	recorded_distance = global_position.distance_to(mouse_position)
 
-func walk():
-	## vertical walk
-	if Input.is_action_pressed("player_walk_up") and not Input.is_action_pressed("player_walk_down"):
-		velocity.y = clamp(velocity.y - WALK_SPEED, - WALK_MAX_SPEED, 0)
-	elif Input.is_action_pressed("player_walk_down") and not Input.is_action_pressed("player_walk_up"):
-		velocity.y = clamp(velocity.y + WALK_SPEED, 0, WALK_MAX_SPEED)
-	
-	## horizontal walk
-	if Input.is_action_pressed("player_walk_right") and not Input.is_action_pressed("player_walk_left"):
-		velocity.x = clamp(velocity.x + WALK_SPEED, 0, WALK_MAX_SPEED)
-	elif Input.is_action_pressed("player_walk_left") and not Input.is_action_pressed("player_walk_right"):
-		velocity.x = clamp(velocity.x - WALK_SPEED, - WALK_MAX_SPEED, 0)
+func move_strafe(deplacement_speed, max_deplacement_speed) -> void:
+	if Input.is_action_pressed("player_strafe_right") and not Input.is_action_pressed("player_strafe_left"):
+		if player_gaze > -22.5 and player_gaze < 22.5 :
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze > -67.5 and player_gaze < -22.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze > -112.5 and player_gaze < -67.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze > -157.5 and player_gaze < -112.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze < 67.5 and player_gaze > 22.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze < 112.5 and player_gaze > 67.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze < 157.5 and player_gaze > 112.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze < -157.5 or player_gaze > 157.5 :
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+	elif Input.is_action_pressed("player_strafe_left") and not Input.is_action_pressed("player_strafe_right"):
+		if player_gaze > -22.5 and player_gaze < 22.5 :
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze > -67.5 and player_gaze < -22.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze > -112.5 and player_gaze < -67.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze > -157.5 and player_gaze < -112.5 :
+			velocity.x = clamp(velocity.x - deplacement_speed, - max_deplacement_speed, 0)
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze < 67.5 and player_gaze > 22.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+			velocity.y = clamp(velocity.y - deplacement_speed, - max_deplacement_speed, 0)
+		elif player_gaze < 112.5 and player_gaze > 67.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze < 157.5 and player_gaze > 112.5 :
+			velocity.x = clamp(velocity.x + deplacement_speed, 0, max_deplacement_speed)
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
+		elif player_gaze < -157.5 or player_gaze > 157.5 :
+			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
 ### ---------------- FIN MOVEMENT ---------------- ###

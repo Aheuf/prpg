@@ -10,7 +10,7 @@ var recorded_distance: float
 func _ready() -> void:
 	$player_animated_sprite.play("idle_top")
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	move_and_slide()
 	look = update_gaze()
 	player_animation = update_animation()
@@ -81,18 +81,18 @@ func update_deplacement() -> void:
 	
 	# setup de la vitesse de déplacement
 	match player_animation:
-		"run" :
+		"run", "run_backward" :
 			deplacement_speed = RUN_SPEED
 			max_deplacement_speed = RUN_MAX_SPEED
 		"walk" :
 			deplacement_speed = WALK_SPEED
 			max_deplacement_speed = WALK_MAX_SPEED
-
+	print(player_animation)
 	if Input.is_action_pressed("player_go_towards") or Input.is_action_pressed("player_go_away"):
 		move_forward_or_backward(max_deplacement_speed)
 	elif Input.is_action_pressed("player_strafe_right") or Input.is_action_pressed("player_strafe_left"):
 		if global_position.distance_to(mouse_position) > recorded_distance:
-			velocity = global_position.direction_to(mouse_position) * RUN_MAX_SPEED
+			velocity = global_position.direction_to(mouse_position) * max_deplacement_speed
 		move_strafe(deplacement_speed, max_deplacement_speed)
 	else:
 		velocity.y = lerp(velocity.y, 0.00, FRICTION)
@@ -102,7 +102,6 @@ func move_forward_or_backward(max_deplacement_speed) -> void:
 	if Input.is_action_pressed("player_go_towards") and not Input.is_action_pressed("player_go_away"):
 		velocity = global_position.direction_to(mouse_position) * max_deplacement_speed
 	elif Input.is_action_pressed("player_go_away") and not Input.is_action_pressed("player_go_towards"):
-		#TODO /!\/!\/!\ ne fonctionne pas /!\/!\/!\
 		velocity = - global_position.direction_to(mouse_position) * max_deplacement_speed
 	recorded_distance = global_position.distance_to(mouse_position)
 

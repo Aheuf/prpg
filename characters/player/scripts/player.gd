@@ -53,7 +53,6 @@ func handle_corner_look() -> String:
 ## FIN fonctions pour mettre à jour la POSITION DU REGARD du joueur
 
 ### ---------------- DEBUT ANIMATION ---------------- ###
-## DEBUT fonctions pour mettre à jour l'ANIMATION DU JOUEUR du joueur
 func update_animation() -> String:
 	if Input.is_action_pressed("player_deplacement_animation") and not Input.is_key_pressed(KEY_SHIFT):
 		return run_animation()
@@ -67,7 +66,6 @@ func run_animation() -> String:
 	elif Input.is_action_pressed("player_go_away"):
 		return "run_backward"
 	return "run"
-## FIN fonctions pour mettre à jour l'ANIMATION DU JOUEUR du joueur
 
 # joue l'animation defini par le regard et les touches
 func animate_player() -> void:
@@ -87,7 +85,7 @@ func update_deplacement() -> void:
 		"walk" :
 			deplacement_speed = WALK_SPEED
 			max_deplacement_speed = WALK_MAX_SPEED
-	print(player_animation)
+
 	if Input.is_action_pressed("player_go_towards") or Input.is_action_pressed("player_go_away"):
 		move_forward_or_backward(max_deplacement_speed)
 	elif Input.is_action_pressed("player_strafe_right") or Input.is_action_pressed("player_strafe_left"):

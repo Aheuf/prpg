@@ -6,6 +6,7 @@ var player_animation:String
 var mouse_position: Vector2
 var player_gaze: float
 var recorded_distance: float
+var reverse_move_animation: bool
 
 func _ready() -> void:
 	$player_animated_sprite.play("idle_top")
@@ -19,7 +20,7 @@ func _physics_process(_delta: float) -> void:
 	animate_player()
 	update_deplacement()
 
-## DEBUT fonctions pour mettre à jour la POSITION DU REGARD du joueur
+### ---------------- DEBUT POSITION DU REGARD ---------------- ###
 func update_gaze() -> String:
 	if abs(player_gaze) < 22.5 or abs(player_gaze) > 157.5 :
 		return handle_horizontal_look()
@@ -50,42 +51,69 @@ func handle_corner_look() -> String:
 			return "tr"
 		else:
 			return "br"
-## FIN fonctions pour mettre à jour la POSITION DU REGARD du joueur
-
+### ---------------- FIN POSITION DU REGARD ---------------- ###
+#######################################################
 ### ---------------- DEBUT ANIMATION ---------------- ###
+# --------- DEBUT DEPLACEMENT
 func update_animation() -> String:
-	if Input.is_action_pressed("player_deplacement_animation") and not Input.is_key_pressed(KEY_SHIFT):
+	var is_walking = Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_CTRL)
+	
+	if Input.is_action_pressed("player_deplacement_animation") and not is_walking:
 		return run_animation()
-	elif Input.is_action_pressed("player_deplacement_animation") and Input.is_key_pressed(KEY_SHIFT):
-		return "walk"
-	return "idle"
+	elif Input.is_action_pressed("player_deplacement_animation") and is_walking:
+		return walk_animation()
+	return idle_animation()
 
 func run_animation() -> String:
-	if Input.is_action_pressed("player_go_towards"):
-		return "run"
-	elif Input.is_action_pressed("player_go_away"):
+	if Input.is_action_pressed("player_go_away"):
 		return "run_backward"
+	elif Input.is_action_pressed("player_strafe_left"):
+		return "strafeL"
+	elif Input.is_action_pressed("player_strafe_right"):
+		return "strafeR"
 	return "run"
 
-# joue l'animation defini par le regard et les touches
+func walk_animation() -> String:
+	if Input.is_key_pressed(KEY_CTRL):
+		return "walk_crouch"
+	return "walk"
+
+func idle_animation() -> String:
+	if Input.is_key_pressed(KEY_CTRL):
+		return "crouch_idle"
+	return "idle"
+# --------- FIN DEPLACEMENT
+# --------- DEBUT ESQUIVE
+# TODO - réduire la hitbox en cas de crouch
+# TODO - roulade
+# TODO - salto
+# TODO - slide
+# --------- FIN ESQUIVE
+
+# --------- joue l'animation defini par le regard et les touches
 func animate_player() -> void:
-	$player_animated_sprite.play(player_animation+"_"+look)
+	if reverse_move_animation :
+		$player_animated_sprite.play_backwards(player_animation+"_"+look)
+	else:
+		$player_animated_sprite.play(player_animation+"_"+look)
 ### ---------------- FIN ANIMATION ---------------- ###
 #######################################################
-### ---------------- DEBUT MOVEMENT ---------------- ###
+### ---------------- DEBUT MOUVEMENT ---------------- ###
+# --------- DEBUT DEPLACEMENT
 func update_deplacement() -> void:
 	var deplacement_speed:float
 	var max_deplacement_speed:float
+	reverse_move_animation = Input.is_action_pressed("player_go_away") and player_animation.contains("walk")
 	
 	# setup de la vitesse de déplacement
 	match player_animation:
-		"run", "run_backward" :
+		"run", "run_backward", "strafeL", "strafeR" :
 			deplacement_speed = RUN_SPEED
 			max_deplacement_speed = RUN_MAX_SPEED
-		"walk" :
+		"walk", "walk_crouch" :
 			deplacement_speed = WALK_SPEED
 			max_deplacement_speed = WALK_MAX_SPEED
-
+	
 	if Input.is_action_pressed("player_go_towards") or Input.is_action_pressed("player_go_away"):
 		move_forward_or_backward(max_deplacement_speed)
 	elif Input.is_action_pressed("player_strafe_right") or Input.is_action_pressed("player_strafe_left"):
@@ -146,4 +174,11 @@ func move_strafe(deplacement_speed, max_deplacement_speed) -> void:
 			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
 		elif player_gaze < -157.5 or player_gaze > 157.5 :
 			velocity.y = clamp(velocity.y + deplacement_speed, 0, max_deplacement_speed)
-### ---------------- FIN MOVEMENT ---------------- ###
+# --------- FIN DEPLACEMENT
+# --------- DEBUT ESQUIVE
+# TODO - réduire la hitbox en cas de crouch
+# TODO - roulade
+# TODO - salto
+# TODO - slide
+# --------- FIN ESQUIVE
+### ---------------- FIN MOUVEMENT ---------------- ###

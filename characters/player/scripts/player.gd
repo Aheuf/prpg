@@ -30,27 +30,17 @@ func update_gaze() -> String:
 		return handle_corner_look()
 
 func handle_horizontal_look() -> String:
-	if mouse_position.x < position.x :
-		return "left"
-	return "right"
+	return "left" if mouse_position.x < position.x else "right"
 
 func handle_vertical_look() -> String:
-	if mouse_position.y < position.y :
-		return "top"
-	return "bot"
+	return "top" if mouse_position.y < position.y else "bot"
 
 func handle_corner_look() -> String:
 	var is_looking_up:bool = mouse_position.y < position.y
 	if 112.5 < abs(player_gaze) and abs(player_gaze) < 157.5:
-		if is_looking_up:
-			return "tl"
-		else:
-			return "bl"
+		return "tl" if is_looking_up else "bl"
 	else:
-		if is_looking_up:
-			return "tr"
-		else:
-			return "br"
+		return "tr" if is_looking_up else "br"
 ### ---------------- FIN POSITION DU REGARD ---------------- ###
 #######################################################
 ### ---------------- DEBUT ANIMATION ---------------- ###
@@ -58,10 +48,8 @@ func handle_corner_look() -> String:
 func update_animation() -> String:
 	var is_walking = Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_CTRL)
 	
-	if Input.is_action_pressed("player_deplacement_animation") and not is_walking:
-		return run_animation()
-	elif Input.is_action_pressed("player_deplacement_animation") and is_walking:
-		return walk_animation()
+	if Input.is_action_pressed("player_deplacement_animation"):
+		return walk_animation() if is_walking else run_animation()
 	return idle_animation()
 
 func run_animation() -> String:
@@ -74,14 +62,10 @@ func run_animation() -> String:
 	return "run"
 
 func walk_animation() -> String:
-	if Input.is_key_pressed(KEY_CTRL):
-		return "walk_crouch"
-	return "walk"
+	return "walk_crouch" if Input.is_key_pressed(KEY_CTRL) else "walk"
 
 func idle_animation() -> String:
-	if Input.is_key_pressed(KEY_CTRL):
-		return "crouch_idle"
-	return "idle"
+	return "crouch_idle" if Input.is_key_pressed(KEY_CTRL) else "idle"
 # --------- FIN DEPLACEMENT
 # --------- DEBUT ESQUIVE
 # TODO - réduire la hitbox en cas de crouch

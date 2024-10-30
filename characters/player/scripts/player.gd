@@ -48,8 +48,10 @@ func handle_corner_look() -> String:
 func update_animation() -> String:
 	var is_walking = Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_CTRL)
 	
-	if Input.is_action_pressed("player_deplacement_animation"):
+	if Input.is_action_pressed("player_deplacement_animation") and not Input.is_action_pressed("player_dodge_animation"):
 		return walk_animation() if is_walking else run_animation()
+	elif Input.is_action_pressed("player_dodge_animation"):
+		return dodge_animation()
 	return idle_animation()
 
 func run_animation() -> String:
@@ -68,6 +70,8 @@ func idle_animation() -> String:
 	return "crouch_idle" if Input.is_key_pressed(KEY_CTRL) else "idle"
 # --------- FIN DEPLACEMENT
 # --------- DEBUT ESQUIVE
+func dodge_animation() -> String:
+	return "roll"
 # TODO - réduire la hitbox en cas de crouch
 # TODO - roulade
 # TODO - salto
